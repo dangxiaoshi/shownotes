@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Show Notes 助手</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+            background: #f7f7f7;
+            min-height: 100vh;
+            padding: 32px 24px;
+            color: #1a1a1a;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 28px;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .api-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 10px;
+        }
+
+        .api-row label {
+            font-size: 13px;
+            color: #888;
+            white-space: nowrap;
+        }
+
+        .api-row input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 13px;
+            color: #333;
+            background: transparent;
+            font-family: 'SF Mono', 'Consolas', monospace;
+        }
+
+        .api-row input::placeholder { color: #ccc; }
+
+        .cols {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 640px) {
+            .cols { grid-template-columns: 1fr; }
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .field-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 6px;
+            letter-spacing: 0.3px;
+        }
+
+        textarea {
+            width: 100%;
+            border: 1px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-size: 14px;
+            line-height: 1.75;
+            color: #333;
+            background: #fff;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.15s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #bbb;
+        }
+
+        textarea::placeholder { color: #ccc; }
+
+        #input { min-height: 260px; }
+        #output { min-height: 480px; }
+
+        .btn-generate {
+            width: 100%;
+            padding: 14px;
+            background: #1a1a1a;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.15s, opacity 0.15s;
+            letter-spacing: 0.2px;
+        }
+
+        .btn-generate:hover:not(:disabled) { background: #333; }
+
+        .btn-generate:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .output-label {
+            font-size: 12px;
+            color: #aaa;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-copy {
+            padding: 6px 18px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-copy:hover { border-color: #bbb; color: #1a1a1a; }
+
+        .btn-copy.copied {
+            background: #f0faf0;
+            border-color: #7ec87e;
+            color: #3a8a3a;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Show Notes 助手</h1>
+            <p>粘贴逐字稿，一键生成标题 + Show Notes</p>
+        </div>
+
+        <div class="field" style="margin-bottom:16px">
+            <textarea id="input" placeholder="请粘贴剪辑需求和带时间戳的逐字稿"></textarea>
+        </div>
+
+        <button class="btn-generate" id="generateBtn" onclick="generate()">生成 Show Notes</button>
+
+        <div class="output-header">
+            <span class="output-label">生成结果</span>
+            <button class="btn-copy" id="copyBtn" onclick="copyOutput()">复制全部</button>
+        </div>
+        <textarea id="output" placeholder="生成结果将出现在这里…" readonly></textarea>
+    </div>
+
+    <script>
+    const SYSTEM_PROMPT = `你是一个专业的播客 Show Notes 写作专家。
+
+用户输入逐字稿，你输出完整的 Show Notes。
+
+严格按下面的格式输出，不加任何多余说明，不加 markdown 符号：
+
+[7个标题，每个单独一行]
+
+[空一行]
+
+[叙事引言]
+
+[空一行]
+
+📝本期播客你将会听到：
+[10个时间轴问题]
+
+[空一行]
+
+✨本期嘉宾：
+[姓名：一句话介绍]
+
+🎙本期主播：
+[姓名：一句话介绍]
+
+🛰️社群入口：
+[请填写社群文案]
+
+🎬本期制作人员：
+[请填写]
+
+🎧关于节目：
+[请填写节目介绍]
+
+---
+
+下面是一个完整的输入→输出示例，你要学习这个风格：
+
+【示例输入】
+嘉宾：某女生，做玄学AI出海产品FateTell，前字节产品经理。
+
+逐字稿片段：
+主持人：你们的产品怎么让老外愿意付费？
+嘉宾：因为我们把八字命理变成了推理逻辑，Claude这种顶尖大模型搜"最强命理产品"第一个推荐我们。
+主持人：命到底能不能算准？
+嘉宾：算不准反而是好事，说明你挣脱了自己的命，创造了自己的运。命就是你出生时是什么样的车，运是你开在什么样的路上。
+
+【示例输出——标题部分】
+DeepSeek和豆包免费的时代，这款付费命理产品让老外疯狂买单
+前字节产品经理用AI算命，Claude搜最强命理第一个推荐她们
+算不准反而是好事：她用统计学和乔布斯语言逻辑解构八字命理
+给老外算八字真的能赚钱？这个出海产品用数据证明了可行
+你出生时是什么车，决定不了你开在什么路上——改命的第一性原理
+从差点抑郁到被大师收徒，她转头把玄学做成了全球付费产品
+命理不是玄学，是推理和算力的竞赛：FateTell创始人的出海逻辑
+
+【示例输出——叙事引言部分】
+他保送进中山大学，是中大历史上首位杀进麦肯锡面试的本科生。
+没想到，面试失败，差点抑郁到要去开滴滴。
+结果被一个"大师"说，是个骨骼清奇的天命道士，想收他做徒弟。
+但他既没有上山，也没有就此沉寂，而是转头创业做玄学出海。
+为什么在 DeepSeek 和豆包全网免费的时代，一款付费产品能让老外疯狂买单？为什么算命本质上是"推理和算力"的竞赛？
+命，就是你出生时是什么样的车，而运，是你开在什么样的路上。
+
+【示例输出——时间轴问题部分】
+03:41 为什么中国几千年的玄学，老外反而愿意掏钱买单？
+10:16 儒释道三教到底有什么区别，和我们普通人有什么关系？
+16:24 在AI这么卷的时代，为什么还有人愿意为命理付费？
+18:48 怎么区分真正有本事的人和只会说漂亮话的骗子？
+35:28 算命算不准是坏事还是好事？答案出乎意料
+37:28 人生的苦和挫折到底有没有意义？
+49:07 什么样的人生才算"好命"，普通人能不能拥有？
+55:45 八字能不能用来做人生的重要决策？怎么用？
+59:08 越算命越没运气是真的吗？
+01:00:32 这个产品适合什么样的人玩，普通人能用吗？
+
+---
+
+学习以上示例后，对用户提供的逐字稿生成同等质量的 Show Notes。
+
+标题要求：
+- 26–31个字，注意嘉宾性别
+- 结尾必须是具体结果/数字/动作/金句，不能是"她是怎么做到的""如何找到方向"这类空话
+- 7个标题覆盖不同角度：反差、结果、悬念、代入感、破认知、用户获得、金句
+
+时间轴问题要求：
+- 用听众的视角写，问的是"我想知道的"，不是"她做了什么"
+- 每条问题读给没听过这期的陌生人，他们会不会觉得"这个我也想知道"`;
+
+
+        const API_KEY = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI0ZDAtNDQ4Yi1hNzZmLWIwY2M2M2Q4MTQ5OCJ9.eyJhdWQiOiJkYW5neGlhb3NoaS0yZ3ZmajFyN2YxYWFiMzQxIiwiZXhwIjoxNzc3MzYyODkzLCJpYXQiOjE3NzQ3NzA4OTMsImF0X2hhc2giOiJrdlVtZk1QTVQxMmVfTnhvcmtad0NBIiwicHJvamVjdF9pZCI6ImRhbmd4aWFvc2hpLTJndmZqMXI3ZjFhYWIzNDEiLCJtZXRhIjp7InBsYXRmb3JtIjoiQXBpS2V5In0sImFkbWluaXN0cmF0b3JfaWQiOiIyMDM3ODEzNzA0NjgwMjQzMjAyIiwidXNlcl90eXBlIjoiIiwiY2xpZW50X3R5cGUiOiJjbGllbnRfc2VydmVyIiwiaXNfc3lzdGVtX2FkbWluIjp0cnVlfQ.i5BEQm69MpXcELP8mgLnn_hextfh4hMPzhTMpjyICc9drJC8OImORdOklWuE52qa9wRhWUr2nEIghiXfHbPLykeHaz2q_aK5KI_O8hqXP1ZDXUMWOHT9Zd8gdvAhVCF_rgd2PZjgXyHp6bFnBx2UmXMD0JEokXKI6B1SFpzzbNPOvv8pGoVcpHF0ygscEyGDsCxgizr4Jk4fR0RYMuuTb88uA1u7zBPI9_gLB2_8hXfHy-2_vUWedu3GafB07fley8UpJBRh2BfA2wDn-gkUIoXwD6EuSKjTGsg_z9Cnh66YrC2Nk56tKNgV6BZRru1F20x8N9O5RgqvB5zPk2sCAg';
+
+        async function generate() {
+            const apiKey = API_KEY;
+            const input = document.getElementById('input').value.trim();
+
+            if (!input)  { alert('请粘贴逐字稿内容'); return; }
+
+            const btn = document.getElementById('generateBtn');
+            const output = document.getElementById('output');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>第一步：提取关键素材…';
+            output.value = '';
+
+            const API_URL = 'https://dangxiaoshi-2gvfj1r7f1aab341.api.tcloudbasegateway.com/v1/ai/deepseek/v1/chat/completions';
+            const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
+
+            async function callAPI(messages) {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ model: 'deepseek-v3-0324', messages })
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error?.message || `请求失败 ${res.status}`);
+                }
+                const data = await res.json();
+                return data.choices[0].message.content;
+            }
+
+            async function streamAPI(messages, onChunk) {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ model: 'deepseek-v3-0324', stream: true, messages })
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error?.message || `请求失败 ${res.status}`);
+                }
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buf = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buf += decoder.decode(value, { stream: true });
+                    const lines = buf.split('\n');
+                    buf = lines.pop();
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const chunk = line.slice(6).trim();
+                        if (chunk === '[DONE]') continue;
+                        try {
+                            const delta = JSON.parse(chunk).choices?.[0]?.delta?.content;
+                            if (delta) onChunk(delta);
+                        } catch (_) {}
+                    }
+                }
+            }
+
+            try {
+                // 第一步：提取素材
+                const extractPrompt = `从下面的播客逐字稿中，提取这6样东西，每条单独一行，直接写内容，不加标题：
+1. 嘉宾最戏剧性的人生反差（起点 vs 现状，越具体越好，要有数字）
+2. 最让外人觉得不可思议的一件事（具体细节，有数字或行为）
+3. 嘉宾说过的最有力的一句话（原话）
+4. 嘉宾的最低谷时刻（具体描述）
+5. 嘉宾怎么从低谷反弹的（具体动作）
+6. 目标听众（搞钱/创业的人）从这期最想知道的一个问题
+
+逐字稿：\n${input}`;
+
+                const material = await callAPI([{ role: 'user', content: extractPrompt }]);
+
+                // 第二步：用素材写完整 Show Notes
+                btn.innerHTML = '<span class="spinner"></span>第二步：生成 Show Notes…';
+
+                const writePrompt = `你是播客 Show Notes 写作专家。
+
+根据以下核心素材，生成完整的 Show Notes。
+
+核心素材：
+${material}
+
+严格按格式输出，不加 markdown 符号：
+
+[7个标题，每个单独一行]
+
+[空一行]
+
+[叙事引言，100-200字，故事弧线+悬念问题+金句]
+
+[空一行]
+
+📝本期播客你将会听到：
+[10个时间轴问题，格式 MM:SS 问题，时间戳参考逐字稿]
+
+[空一行]
+
+✨本期嘉宾：
+[从逐字稿推断：姓名：一句话介绍]
+
+🎙本期主播：
+[从逐字稿推断：姓名：一句话介绍]
+
+🛰️社群入口：
+[请填写社群文案]
+
+🎬本期制作人员：
+[请填写]
+
+🎧关于节目：
+[请填写节目介绍]
+
+---
+
+性别判断规则（必须执行）：
+从逐字稿中找自称词来判断嘉宾性别，不要靠名字猜（中文名字很多不分男女）：
+- 嘉宾说"老娘" → 女性，用"她"
+- 嘉宾说"老子" → 男性，用"他"
+- 找不到自称词 → 看话题语境（美妆/首饰/生理特征等）判断
+- 不要信主持人口语里的"他/她"（普通话口语他她不分）
+
+标题规则：
+- 26-31个字，不加序号
+- 结尾是具体结果/数字/动作/金句，不能是问句
+- 7个覆盖不同角度：反差型、结果型、悬念型、代入感型、破认知型、用户获得型、金句型
+- 好标题示例：「18线小镇女孩被原生家庭PUA，靠朋友圈+AI两年赚100万，实操干货直接抄」
+
+时间轴规则：
+- 听众视角，每条是"我想知道的"，不是"嘉宾做了什么"
+- 好示例：「糊了之后能不能重新来过？普通人从零开始的第一步怎么走」
+- 坏示例：「她是如何从明日之子转型到美妆博主的」
+
+原始逐字稿（用于提取时间戳）：
+${input}`;
+
+                await streamAPI(
+                    [{ role: 'user', content: writePrompt }],
+                    delta => {
+                        output.value += delta;
+                        output.scrollTop = output.scrollHeight;
+                    }
+                );
+
+            } catch (e) {
+                output.value = `⚠️ 错误：${e.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '生成 Show Notes';
+            }
+        }
+
+        function copyOutput() {
+            const text = document.getElementById('output').value;
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyBtn');
+                btn.textContent = '已复制 ✓';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '复制全部';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
