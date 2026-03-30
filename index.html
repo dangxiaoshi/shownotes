@@ -292,7 +292,7 @@ DeepSeek和豆包免费的时代，这款付费命理产品让老外疯狂买单
 - 每条问题读给没听过这期的陌生人，他们会不会觉得"这个我也想知道"`;
 
 
-        const API_KEY = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI0ZDAtNDQ4Yi1hNzZmLWIwY2M2M2Q4MTQ5OCJ9.eyJhdWQiOiJkYW5neGlhb3NoaS0yZ3ZmajFyN2YxYWFiMzQxIiwiZXhwIjoxNzc3MzYyODkzLCJpYXQiOjE3NzQ3NzA4OTMsImF0X2hhc2giOiJrdlVtZk1QTVQxMmVfTnhvcmtad0NBIiwicHJvamVjdF9pZCI6ImRhbmd4aWFvc2hpLTJndmZqMXI3ZjFhYWIzNDEiLCJtZXRhIjp7InBsYXRmb3JtIjoiQXBpS2V5In0sImFkbWluaXN0cmF0b3JfaWQiOiIyMDM3ODEzNzA0NjgwMjQzMjAyIiwidXNlcl90eXBlIjoiIiwiY2xpZW50X3R5cGUiOiJjbGllbnRfc2VydmVyIiwiaXNfc3lzdGVtX2FkbWluIjp0cnVlfQ.i5BEQm69MpXcELP8mgLnn_hextfh4hMPzhTMpjyICc9drJC8OImORdOklWuE52qa9wRhWUr2nEIghiXfHbPLykeHaz2q_aK5KI_O8hqXP1ZDXUMWOHT9Zd8gdvAhVCF_rgd2PZjgXyHp6bFnBx2UmXMD0JEokXKI6B1SFpzzbNPOvv8pGoVcpHF0ygscEyGDsCxgizr4Jk4fR0RYMuuTb88uA1u7zBPI9_gLB2_8hXfHy-2_vUWedu3GafB07fley8UpJBRh2BfA2wDn-gkUIoXwD6EuSKjTGsg_z9Cnh66YrC2Nk56tKNgV6BZRru1F20x8N9O5RgqvB5zPk2sCAg';
+        const API_KEY = 'sk-a1d68136d14e410d8b652595fcb91c7d';
 
         async function generate() {
             const apiKey = API_KEY;
@@ -307,7 +307,7 @@ DeepSeek和豆包免费的时代，这款付费命理产品让老外疯狂买单
             btn.innerHTML = '<span class="spinner"></span>第一步：提取关键素材…';
             output.value = '';
 
-            const API_URL = 'https://dangxiaoshi-2gvfj1r7f1aab341.api.tcloudbasegateway.com/v1/ai/deepseek/v1/chat/completions';
+            const API_URL = 'https://api.deepseek.com/v1/chat/completions';
             const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
 
             async function callAPI(messages) {
