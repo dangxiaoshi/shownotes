@@ -314,7 +314,7 @@ DeepSeek和豆包免费的时代，这款付费命理产品让老外疯狂买单
                 const res = await fetch(API_URL, {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify({ model: 'deepseek-v3-0324', messages })
+                    body: JSON.stringify({ model: 'deepseek-chat', messages })
                 });
                 if (!res.ok) {
                     const err = await res.json().catch(() => ({}));
@@ -328,7 +328,7 @@ DeepSeek和豆包免费的时代，这款付费命理产品让老外疯狂买单
                 const res = await fetch(API_URL, {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify({ model: 'deepseek-v3-0324', stream: true, messages })
+                    body: JSON.stringify({ model: 'deepseek-chat', stream: true, messages })
                 });
                 if (!res.ok) {
                     const err = await res.json().catch(() => ({}));
